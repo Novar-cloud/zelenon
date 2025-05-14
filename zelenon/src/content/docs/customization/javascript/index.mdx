@@ -1,0 +1,358 @@
+---
+title: Advanced Shopify JavaScript Guide 2025 | Dynamic Features & APIs
+description: Master advanced JavaScript techniques for Shopify themes. Learn AJAX cart updates, dynamic sections, API integrations, and modern ES6+ practices for 2025.
+head:
+  - tag: meta
+    attrs:
+      name: keywords
+      content: shopify javascript, ajax cart, dynamic sections, api integration, shopify api
+  - tag: meta
+    attrs:
+      property: og:title
+      content: Advanced Shopify JavaScript Development Guide 2025
+  - tag: meta
+    attrs:
+      property: og:description
+      content: Comprehensive guide to advanced JavaScript development for Shopify themes
+  - tag: meta
+    attrs:
+      name: author
+      content: Zelenon Documentation
+  - tag: meta
+    attrs:
+      name: robots
+      content: index, follow, max-image-preview:large
+---
+
+# Advanced Shopify JavaScript Development
+
+## Modern JavaScript Architecture
+
+### Module-based Structure
+
+Organize your JavaScript using modules:
+
+```javascript
+// modules/cart.js
+export default class Cart {
+  constructor() {
+    this.items = [];
+    this.total = 0;
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('[data-add-to-cart]')) {
+        e.preventDefault();
+        this.addToCart(e.target);
+      }
+    });
+  }
+
+  async addToCart(button) {
+    const form = button.closest('form');
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/cart/add.js', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const item = await response.json();
+      this.updateCart();
+      this.showNotification('Item added to cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      this.showNotification('Error adding to cart', 'error');
+    }
+  }
+}
+
+// main.js
+import Cart from './modules/cart';
+new Cart();
+```
+
+## AJAX Cart Implementation
+
+### Modern Cart API
+
+Create a full-featured cart system:
+
+```javascript
+// modules/modern-cart.js
+export class ModernCart {
+  constructor() {
+    this.cart = null;
+    this.init();
+  }
+
+  async init() {
+    await this.fetchCart();
+    this.bindEvents();
+  }
+
+  async fetchCart() {
+    const response = await fetch('/cart.js');
+    this.cart = await response.json();
+    this.updateUI();
+  }
+
+  updateUI() {
+    const cartCountElements = document.querySelectorAll('[data-cart-count]');
+    const cartTotalElements = document.querySelectorAll('[data-cart-total]');
+    
+    cartCountElements.forEach(el => {
+      el.textContent = this.cart.item_count;
+    });
+    
+    cartTotalElements.forEach(el => {
+      el.textContent = this.formatMoney(this.cart.total_price);
+    });
+  }
+
+  async updateQuantity(key, quantity) {
+    try {
+      const response = await fetch('/cart/change.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: key, quantity })
+      });
+
+      this.cart = await response.json();
+      this.updateUI();
+      
+      return {
+        success: true,
+        cart: this.cart
+      };
+    } catch (error) {
+      console.error('Error updating cart:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  formatMoney(cents) {
+    return (cents / 100).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    });
+  }
+}
+```
+
+## Dynamic Sections
+
+### Section Rendering
+
+Handle section updates efficiently:
+
+```javascript
+// modules/section-manager.js
+export class SectionManager {
+  constructor() {
+    this.sections = new Map();
+    this.init();
+  }
+
+  init() {
+    this.registerSectionEvents();
+    this.initializeSections();
+  }
+
+  registerSectionEvents() {
+    document.addEventListener('shopify:section:load', (event) => {
+      const container = event.target;
+      const type = container.dataset.sectionType;
+      
+      if (this.sections.has(type)) {
+        const section = new (this.sections.get(type))(container);
+        section.onMount();
+      }
+    });
+
+    document.addEventListener('shopify:section:unload', (event) => {
+      const container = event.target;
+      const type = container.dataset.sectionType;
+      
+      if (this.sections.has(type)) {
+        const section = this.sections.get(type);
+        section.onUnmount();
+      }
+    });
+  }
+
+  register(type, handler) {
+    this.sections.set(type, handler);
+  }
+
+  initializeSections() {
+    document.querySelectorAll('[data-section-type]').forEach(container => {
+      const type = container.dataset.sectionType;
+      
+      if (this.sections.has(type)) {
+        const section = new (this.sections.get(type))(container);
+        section.onMount();
+      }
+    });
+  }
+}
+
+// Example section class
+export class ProductRecommendations {
+  constructor(container) {
+    this.container = container;
+    this.productId = container.dataset.productId;
+  }
+
+  async onMount() {
+    await this.fetchRecommendations();
+  }
+
+  async fetchRecommendations() {
+    try {
+      const response = await fetch(
+        `/recommendations/products.json?product_id=${this.productId}&limit=4`
+      );
+      const data = await response.json();
+      this.render(data.products);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  }
+
+  render(products) {
+    // Render product recommendations
+  }
+
+  onUnmount() {
+    // Cleanup code
+  }
+}
+```
+
+## API Integration
+
+### REST API Wrapper
+
+Create a reusable API client:
+
+```javascript
+// modules/api-client.js
+export class ShopifyClient {
+  constructor(options = {}) {
+    this.baseUrl = options.baseUrl || window.Shopify.routes.root;
+    this.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+  }
+
+  async fetch(endpoint, options = {}) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      headers: {
+        ...this.headers,
+        ...options.headers
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async getProduct(handle) {
+    return this.fetch(`/products/${handle}.js`);
+  }
+
+  async getCollection(handle) {
+    return this.fetch(`/collections/${handle}.js`);
+  }
+
+  async addToCart(items) {
+    return this.fetch('/cart/add.js', {
+      method: 'POST',
+      body: JSON.stringify({ items })
+    });
+  }
+}
+
+// Usage example
+const client = new ShopifyClient();
+const cart = new ModernCart();
+
+async function quickAdd(productId, quantity = 1) {
+  try {
+    const result = await client.addToCart([{
+      id: productId,
+      quantity
+    }]);
+    
+    await cart.fetchCart();
+    return result;
+  } catch (error) {
+    console.error('Quick add failed:', error);
+    throw error;
+  }
+}
+```
+
+## Performance Optimization
+
+### Code Splitting
+
+Implement dynamic imports for better performance:
+
+```javascript
+// modules/lazy-loader.js
+export class LazyLoader {
+  static async loadModule(name) {
+    const modules = {
+      'product-zoom': () => import('./product-zoom.js'),
+      'video-player': () => import('./video-player.js'),
+      'reviews': () => import('./reviews.js')
+    };
+
+    if (modules[name]) {
+      try {
+        const module = await modules[name]();
+        return module.default;
+      } catch (error) {
+        console.error(`Error loading module ${name}:`, error);
+        throw error;
+      }
+    }
+    
+    throw new Error(`Module ${name} not found`);
+  }
+}
+
+// Usage
+document.querySelectorAll('[data-module]').forEach(async element => {
+  const moduleName = element.dataset.module;
+  
+  try {
+    const Module = await LazyLoader.loadModule(moduleName);
+    new Module(element);
+  } catch (error) {
+    console.error(`Failed to load ${moduleName}:`, error);
+  }
+});
+```
+
+## Next Steps
+
+1. [Explore Theme Architecture](/themes/architecture/)
+2. [Learn About Performance Optimization](/performance/speed-optimization/)
+3. [Master Theme Testing](/development/testing/)
+4. [Implement Advanced Features](/customization/advanced-features/)

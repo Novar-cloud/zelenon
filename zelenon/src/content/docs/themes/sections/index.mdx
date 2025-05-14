@@ -1,0 +1,320 @@
+---
+title: Shopify Sections & Blocks Guide 2025 | Dynamic Theme Components
+description: Master Shopify sections and blocks development. Learn to create dynamic, customizable theme components with step-by-step examples and best practices for 2025.
+head:
+  - tag: meta
+    attrs:
+      name: keywords
+      content: shopify sections, shopify blocks, dynamic sections, theme customization, section schema, shopify theme development
+  - tag: meta
+    attrs:
+      property: og:title
+      content: Complete Guide to Shopify Sections & Blocks Development 2025
+  - tag: meta
+    attrs:
+      property: og:description
+      content: Learn to build dynamic Shopify sections and blocks with real-world examples and best practices
+  - tag: meta
+    attrs:
+      name: author
+      content: Zelenon Documentation
+  - tag: meta
+    attrs:
+      name: robots
+      content: index, follow, max-image-preview:large
+---
+
+# Mastering Shopify Sections & Blocks
+
+## Introduction to Dynamic Sections
+
+Dynamic sections are the building blocks of modern Shopify themes, allowing merchants to customize their store's layout and content without touching code.
+
+### Basic Section Structure
+
+```liquid
+{% schema %}
+{
+  "name": "Hero Banner",
+  "tag": "section",
+  "class": "hero-banner",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Welcome to our store"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background Image"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero Banner",
+      "category": "Hero"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="hero-banner {% if section.settings.background_image %}has-bg-image{% endif %}">
+  {% if section.settings.background_image %}
+    {{ section.settings.background_image | image_url: width: 1800 | image_tag: loading: 'lazy', class: 'hero-banner__bg' }}
+  {% endif %}
+  <h1>{{ section.settings.heading }}</h1>
+</div>
+
+{% stylesheet %}
+.hero-banner {
+  position: relative;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.hero-banner__bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
+{% endstylesheet %}
+```
+
+## Advanced Section Features
+
+### Dynamic Blocks
+
+Blocks allow merchants to add, remove, and reorder content within a section:
+
+```liquid
+{% schema %}
+{
+  "name": "Featured Products Grid",
+  "tag": "section",
+  "class": "featured-products",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section Title",
+      "default": "Featured Products"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product",
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "Product"
+        },
+        {
+          "type": "select",
+          "id": "size",
+          "label": "Product Card Size",
+          "options": [
+            {
+              "value": "small",
+              "label": "Small"
+            },
+            {
+              "value": "medium",
+              "label": "Medium"
+            },
+            {
+              "value": "large",
+              "label": "Large"
+            }
+          ],
+          "default": "medium"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 12,
+  "presets": [
+    {
+      "name": "Featured Products",
+      "blocks": [
+        {
+          "type": "product"
+        },
+        {
+          "type": "product"
+        },
+        {
+          "type": "product"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<div class="featured-products">
+  <h2>{{ section.settings.title }}</h2>
+  <div class="product-grid">
+    {% for block in section.blocks %}
+      {% assign product = block.settings.product %}
+      <div class="product-card product-card--{{ block.settings.size }}" {{ block.shopify_attributes }}>
+        {% render 'product-card', product: product %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+```
+
+## Advanced Customization
+
+### App Blocks Integration
+
+Enable app block support in your sections:
+
+```liquid
+{% schema %}
+{
+  "name": "Product Information",
+  "tag": "section",
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "title",
+      "name": "Product Title",
+      "limit": 1
+    },
+    {
+      "type": "price",
+      "name": "Product Price",
+      "limit": 1
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "title"
+      },
+      {
+        "type": "price"
+      }
+    ]
+  }
+}
+{% endschema %}
+```
+
+### Dynamic Settings
+
+Create responsive settings that update in real-time:
+
+```liquid
+{% schema %}
+{
+  "name": "Announcement Bar",
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "background-1"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_rotate",
+      "label": "Auto-rotate announcements",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "rotation_speed",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "unit": "sec",
+      "label": "Change announcement every",
+      "default": 5
+    }
+  ]
+}
+{% endschema %}
+
+<script>
+  class AnnouncementBar extends HTMLElement {
+    constructor() {
+      super();
+      this.autoRotate = {{ section.settings.auto_rotate | json }};
+      this.rotationSpeed = {{ section.settings.rotation_speed | times: 1000 }};
+    }
+    
+    connectedCallback() {
+      if (this.autoRotate) {
+        this.startRotation();
+      }
+    }
+  }
+  customElements.define('announcement-bar', AnnouncementBar);
+</script>
+```
+
+## Best Practices
+
+### 1. Performance Optimization
+
+- Use lazy loading for images
+- Minimize inline scripts
+- Implement content-visibility for off-screen sections
+
+### 2. Maintainable Code
+
+- Use meaningful variable names
+- Comment complex logic
+- Break down large sections into snippets
+
+### 3. User Experience
+
+- Provide clear setting labels
+- Group related settings
+- Use appropriate input types
+- Include helpful default values
+
+## Debugging Tips
+
+### Common Issues and Solutions
+
+1. Section not updating in theme editor
+```javascript
+document.addEventListener('shopify:section:load', function(event) {
+  // Reinitialize section-specific JavaScript
+  const section = event.target;
+  section.querySelector('.your-component')?.init();
+});
+```
+
+2. Block order not preserving
+```liquid
+{% assign sorted_blocks = section.blocks | sort: 'type' %}
+{% for block in sorted_blocks %}
+  {% case block.type %}
+    {% when 'heading' %}
+      <h2 {{ block.shopify_attributes }}>{{ block.settings.title }}</h2>
+    {% when 'text' %}
+      <div {{ block.shopify_attributes }}>{{ block.settings.text }}</div>
+  {% endcase %}
+{% endfor %}
+```
+
+## Next Steps
+
+1. [Explore Liquid Templates](/themes/liquid/)
+2. [Learn About Theme Architecture](/themes/architecture/)
+3. [Master Performance Optimization](/performance/speed-optimization/)
+4. [Implement Advanced JavaScript](/customization/javascript/)

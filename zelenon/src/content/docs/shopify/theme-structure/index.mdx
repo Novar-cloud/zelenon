@@ -1,0 +1,137 @@
+---
+title: Shopify Theme Architecture
+description: Comprehensive guide to understanding Shopify theme structure, templates, sections, and blocks
+---
+
+# Shopify Theme Architecture Overview
+
+## Theme Structure Fundamentals
+
+A Shopify theme controls the visual presentation and functionality of your online store through a combination of templates, sections, and blocks. Here's how these components work together:
+
+### Directory Structure
+
+```plaintext
+theme/
+├── layout/
+│   └── theme.liquid        # Global layout file
+├── templates/
+│   ├── index.json         # Homepage template
+│   ├── product.liquid     # Product page template
+│   └── collection.liquid  # Collection page template
+├── sections/
+│   ├── header.liquid      # Site header
+│   └── footer.liquid      # Site footer
+├── snippets/
+│   └── product-card.liquid # Reusable product card
+├── assets/
+│   ├── theme.css          # Theme styles
+│   └── theme.js           # Theme scripts
+├── config/
+│   ├── settings_schema.json  # Theme settings
+│   └── settings_data.json    # Theme configuration
+└── locales/
+    └── en.default.json    # Translation strings
+```
+
+### Key Components
+
+#### Layout Files
+The `theme.liquid` file serves as the master template for your store, containing:
+- HTML document structure
+- Header and footer includes
+- Global assets (CSS, JavaScript)
+- Shopify-specific tags
+
+#### Templates
+Templates define the structure for different page types:
+- `index.json`: Homepage layout
+- `product.liquid`: Product page structure
+- `collection.liquid`: Collection page layout
+- `page.liquid`: Standard page template
+
+#### Sections
+Sections are modular, reusable components that can be:
+- Added to templates
+- Reordered through the theme editor
+- Customized with settings
+
+Example section structure:
+```liquid
+{% schema %}
+{
+  "name": "Featured Products",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section Title"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="featured-products">
+  <h2>{{ section.settings.title }}</h2>
+  {% for product in section.products %}
+    {% render 'product-card', product: product %}
+  {% endfor %}
+</div>
+```
+
+#### Blocks
+Blocks are customizable components within sections that allow for:
+- Content flexibility
+- Dynamic layouts
+- Enhanced customization options
+
+Example block structure:
+```liquid
+{% schema %}
+{
+  "name": "Featured Products",
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "Product"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+```
+
+## Best Practices
+
+1. **Modular Design**
+   - Break down complex layouts into reusable sections
+   - Use snippets for repeatable components
+   - Implement blocks for flexible content areas
+
+2. **Performance**
+   - Minimize JavaScript and CSS files
+   - Use responsive images
+   - Implement lazy loading where appropriate
+
+3. **Customization**
+   - Provide meaningful section and block settings
+   - Use clear labels and helpful descriptions
+   - Group related settings together
+
+4. **Version Control**
+   - Use Git for tracking changes
+   - Maintain a clear commit history
+   - Document major changes and updates
+
+## Next Steps
+
+- Learn more about [Templates and Page Types](/docs/shopify/templates/)
+- Explore [Sections and Blocks](/docs/shopify/sections-blocks/)
+- Master [Liquid Templating](/docs/shopify/liquid/)

@@ -1,0 +1,313 @@
+---
+title: Shopify SEO Guide 2025 | Complete Store Optimization
+description: Master Shopify SEO with our comprehensive guide. Learn advanced techniques for improving search rankings, optimizing product pages, and boosting organic traffic in 2025.
+head:
+  - tag: meta
+    attrs:
+      name: keywords
+      content: shopify seo, store optimization, ecommerce seo, product page seo, shopify rankings
+  - tag: meta
+    attrs:
+      property: og:title
+      content: Ultimate Shopify SEO Guide 2025 | Expert Tips & Strategies
+  - tag: meta
+    attrs:
+      property: og:description
+      content: Comprehensive guide to Shopify SEO optimization, including technical SEO, content optimization, and advanced ranking strategies
+  - tag: meta
+    attrs:
+      name: author
+      content: Zelenon Documentation
+  - tag: meta
+    attrs:
+      name: robots
+      content: index, follow, max-image-preview:large
+---
+
+# Complete Shopify SEO Guide 2025
+
+## Technical SEO Fundamentals
+
+### Meta Tags Implementation
+
+Add proper meta tags to your theme's `layout/theme.liquid`:
+
+```liquid
+<head>
+  <title>
+    {%- if template.name == "index" -%}
+      {{ shop.name }} - {{ shop.description }}
+    {%- elsif template.name == "product" -%}
+      {{ product.title }} - {{ shop.name }}
+    {%- else -%}
+      {{ page_title }} - {{ shop.name }}
+    {%- endif -%}
+  </title>
+
+  <meta name="description" content="{% if template.name == 'product' %}{{ product.description | strip_html | truncatewords: 150 }}{% else %}{{ page_description }}{% endif %}">
+  
+  <!-- Open Graph Tags -->
+  <meta property="og:site_name" content="{{ shop.name }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:type" content="{% if template.name == 'product' %}product{% else %}website{% endif %}">
+  <meta property="og:description" content="{{ page_description }}">
+  {% if template.name == 'product' and product.featured_image %}
+    <meta property="og:image" content="{{ product.featured_image | img_url: 'large' }}">
+  {% endif %}
+</head>
+```
+
+### JSON-LD Schema Markup
+
+Implement structured data for products:
+
+```liquid
+{% if template.name == 'product' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.title }}",
+  "image": [
+    {% for image in product.images %}
+      "{{ image.src | img_url: 'large' }}"{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ],
+  "description": "{{ product.description | strip_html }}",
+  "sku": "{{ product.selected_or_first_available_variant.sku }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "{{ product.vendor }}"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ shop.url }}{{ product.url }}",
+    "priceCurrency": "{{ shop.currency }}",
+    "price": "{{ product.price | divided_by: 100.00 }}",
+    "availability": "{% if product.available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}"
+  }
+}
+</script>
+{% endif %}
+```
+
+## Content Optimization
+
+### Product Page Optimization
+
+Create SEO-friendly product descriptions:
+
+```liquid
+<div class="product-description">
+  <h1>{{ product.title }}</h1>
+  
+  {% if product.description != blank %}
+    <div class="rte">
+      {{ product.description }}
+    </div>
+  {% endif %}
+  
+  {% if product.metafields.custom.specs != blank %}
+    <div class="product-specs">
+      <h2>Product Specifications</h2>
+      {{ product.metafields.custom.specs }}
+    </div>
+  {% endif %}
+  
+  {% if product.tags.size > 0 %}
+    <div class="product-tags" aria-label="Product tags">
+      {% for tag in product.tags %}
+        <span class="tag">{{ tag }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+```
+
+### URL Structure Optimization
+
+Configure URL handles in `settings_schema.json`:
+
+```json
+{
+  "name": "SEO Settings",
+  "settings": [
+    {
+      "type": "header",
+      "content": "URL Structure"
+    },
+    {
+      "type": "checkbox",
+      "id": "use_category_in_url",
+      "label": "Include category in product URLs",
+      "default": true
+    }
+  ]
+}
+```
+
+## Performance Optimization
+
+### Image Optimization
+
+Implement responsive images with lazy loading:
+
+```liquid
+{% assign image_sizes = '180,360,540,720,900,1080,1296,1512,1728,1944,2160,2376,2592,2808,3024' | split: ',' %}
+
+<picture>
+  <source
+    media="(min-width: 1200px)"
+    srcset="{% for size in image_sizes %}{% if size <= 2160 %}{{ image | image_url: width: size }} {{ size }}w{% unless forloop.last %}, {% endunless %}{% endif %}{% endfor %}"
+    sizes="(min-width: 1200px) 33vw, 100vw">
+  
+  <source
+    media="(min-width: 750px)"
+    srcset="{% for size in image_sizes %}{% if size <= 1512 %}{{ image | image_url: width: size }} {{ size }}w{% unless forloop.last %}, {% endunless %}{% endif %}{% endfor %}"
+    sizes="(min-width: 750px) 50vw, 100vw">
+    
+  <img
+    src="{{ image | image_url: width: 540 }}"
+    srcset="{% for size in image_sizes %}{% if size <= 1080 %}{{ image | image_url: width: size }} {{ size }}w{% unless forloop.last %}, {% endunless %}{% endif %}{% endfor %}"
+    sizes="100vw"
+    loading="lazy"
+    alt="{{ image.alt | escape }}"
+    width="{{ image.width }}"
+    height="{{ image.height }}"
+    class="responsive-image">
+</picture>
+```
+
+### Resource Hints
+
+Add resource hints to `layout/theme.liquid`:
+
+```liquid
+<head>
+  <!-- DNS Prefetch -->
+  <link rel="dns-prefetch" href="https://cdn.shopify.com">
+  
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+  
+  <!-- Preload Critical Resources -->
+  <link rel="preload" href="{{ 'theme.css' | asset_url }}" as="style">
+  <link rel="preload" href="{{ 'theme.js' | asset_url }}" as="script">
+  
+  <!-- Preload Fonts -->
+  {% for font in settings.type_header_font %}
+    <link rel="preload" href="{{ font | font_url }}" as="font" type="font/woff2" crossorigin>
+  {% endfor %}
+</head>
+```
+
+## Advanced SEO Strategies
+
+### Internal Linking Structure
+
+Create a related products section:
+
+```liquid
+{% assign current_product = product %}
+{% assign current_tags = current_product.tags | join: ',' | downcase | split: ',' %}
+
+{% for product in collections.all.products %}
+  {% if product.id != current_product.id %}
+    {% assign product_tags = product.tags | join: ',' | downcase | split: ',' %}
+    {% assign common_tags = current_tags | concat: product_tags | uniq %}
+    
+    {% if common_tags.size < current_tags.size | plus: product_tags.size %}
+      <div class="related-product">
+        <a href="{{ product.url }}" class="related-product__link">
+          {{ product.featured_image | image_url: width: 300 | image_tag }}
+          <h3>{{ product.title }}</h3>
+        </a>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endfor %}
+```
+
+### Sitemap Enhancement
+
+Create a custom sitemap section:
+
+```liquid
+{% schema %}
+{
+  "name": "XML Sitemap",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "include_collections",
+      "label": "Include collections",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "include_products",
+      "label": "Include products",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "include_articles",
+      "label": "Include blog articles",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
+
+{% paginate collections.all.products by 1000 %}
+  {% for product in collections.all.products %}
+    <url>
+      <loc>{{ shop.url }}{{ product.url }}</loc>
+      <lastmod>{{ product.updated_at | date: '%Y-%m-%d' }}</lastmod>
+      <changefreq>weekly</changefreq>
+      <priority>0.8</priority>
+    </url>
+  {% endfor %}
+{% endpaginate %}
+```
+
+## Monitoring and Analysis
+
+### Custom Reports Setup
+
+Add analytics tracking:
+
+```liquid
+{% if settings.enable_enhanced_analytics %}
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      // Track product views
+      {% if template.name == 'product' %}
+        analytics.track('Product Viewed', {
+          name: {{ product.title | json }},
+          price: {{ product.price | divided_by: 100.0 | json }},
+          sku: {{ product.selected_or_first_available_variant.sku | json }},
+          category: {{ product.type | json }}
+        });
+      {% endif %}
+      
+      // Track collection views
+      {% if template.name == 'collection' %}
+        analytics.track('Collection Viewed', {
+          name: {{ collection.title | json }},
+          category: {{ collection.title | json }},
+          products: {{ collection.products_count | json }}
+        });
+      {% endif %}
+    });
+  </script>
+{% endif %}
+```
+
+## Next Steps
+
+1. [Implement Performance Optimization](/performance/speed-optimization/)
+2. [Master Theme Development](/themes/architecture/)
+3. [Learn Advanced Liquid](/themes/liquid/)
+4. [Explore Analytics Integration](/analytics/setup/)

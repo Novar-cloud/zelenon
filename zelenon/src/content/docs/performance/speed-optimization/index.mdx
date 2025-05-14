@@ -1,0 +1,334 @@
+---
+title: Shopify Performance Optimization Guide 2025 | Speed Up Your Store
+description: Learn expert techniques for optimizing your Shopify store's performance. Comprehensive guide to improving page speed, Core Web Vitals, and mobile performance in 2025.
+head:
+  - tag: meta
+    attrs:
+      name: keywords
+      content: shopify performance, page speed optimization, core web vitals, mobile optimization, shopify speed
+  - tag: meta
+    attrs:
+      property: og:title
+      content: Complete Shopify Performance Optimization Guide 2025
+  - tag: meta
+    attrs:
+      property: og:description
+      content: Master guide to optimizing Shopify store performance, improving load times, and boosting conversion rates
+  - tag: meta
+    attrs:
+      name: author
+      content: Zelenon Documentation
+  - tag: meta
+    attrs:
+      name: robots
+      content: index, follow, max-image-preview:large
+---
+
+# Shopify Performance Optimization Guide
+
+## Core Web Vitals Optimization
+
+### Largest Contentful Paint (LCP)
+
+Optimize hero images and above-the-fold content:
+
+```liquid
+{% comment %}Optimize hero section for LCP{% endcomment %}
+<div class="hero-section">
+  {% assign hero_image = section.settings.hero_image %}
+  {% if hero_image %}
+    <picture>
+      {% assign widths = '375,750,1100,1500,1780,2000' | split: ',' %}
+      
+      {% for width in widths %}
+        <source
+          media="(min-width: {{ width }}px)"
+          srcset="{{ hero_image | image_url: width: width, height: height }} {{ width }}w"
+          type="image/webp">
+      {% endfor %}
+      
+      <img
+        src="{{ hero_image | image_url: width: 1500 }}"
+        loading="eager"
+        fetchpriority="high"
+        width="{{ hero_image.width }}"
+        height="{{ hero_image.height }}"
+        alt="{{ hero_image.alt | escape }}"
+        class="hero-image">
+    </picture>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "Hero Section",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Hero Image",
+      "info": "Recommended size: 2000 x 800px"
+    }
+  ]
+}
+{% endschema %}
+```
+
+### First Input Delay (FID)
+
+Optimize JavaScript execution:
+
+```javascript
+// Defer non-critical JavaScript
+function loadDeferredScripts() {
+  const deferredScripts = [
+    {
+      src: '{{ "product-zoom.js" | asset_url }}',
+      async: true,
+      defer: true
+    },
+    {
+      src: '{{ "reviews.js" | asset_url }}',
+      async: true,
+      defer: true
+    }
+  ];
+
+  deferredScripts.forEach(script => {
+    const scriptEl = document.createElement('script');
+    Object.assign(scriptEl, script);
+    document.body.appendChild(scriptEl);
+  });
+}
+
+// Load deferred scripts after page load
+window.addEventListener('load', loadDeferredScripts);
+```
+
+### Cumulative Layout Shift (CLS)
+
+Prevent layout shifts with proper image and font handling:
+
+```liquid
+{% comment %}Prevent CLS with proper image dimensions{% endcomment %}
+{% style %}
+.product-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: {{ product.featured_image.aspect_ratio }};
+}
+
+.product-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Font display settings */
+@font-face {
+  font-family: 'ShopifyCustom';
+  src: url('{{ settings.custom_font | asset_url }}') format('woff2');
+  font-display: swap;
+}
+{% endstyle %}
+
+<div class="product-image-container">
+  <img
+    class="product-image"
+    src="{{ product.featured_image | image_url: width: 800 }}"
+    width="{{ product.featured_image.width }}"
+    height="{{ product.featured_image.height }}"
+    loading="lazy"
+    alt="{{ product.featured_image.alt | escape }}">
+</div>
+```
+
+## Asset Optimization
+
+### Image Optimization Pipeline
+
+Create an optimization workflow:
+
+```liquid
+{% comment %}Responsive image with WebP format{% endcomment %}
+{% capture image_sizes %}(min-width: 1200px) 1200px, (min-width: 750px) 750px, calc(100vw - 30px){% endcapture %}
+
+<picture>
+  <source
+    type="image/webp"
+    srcset="{% for width in site.responsive_image_widths %}{{ image | image_url: width: width, format: 'webp' }} {{ width }}w{% unless forloop.last %}, {% endunless %}{% endfor %}"
+    sizes="{{ image_sizes }}">
+    
+  <source
+    srcset="{% for width in site.responsive_image_widths %}{{ image | image_url: width: width }} {{ width }}w{% unless forloop.last %}, {% endunless %}{% endfor %}"
+    sizes="{{ image_sizes }}">
+    
+  <img
+    src="{{ image | image_url: width: 750 }}"
+    loading="lazy"
+    alt="{{ image.alt | escape }}"
+    width="{{ image.width }}"
+    height="{{ image.height }}"
+    class="responsive-image">
+</picture>
+```
+
+### Critical CSS Extraction
+
+Implement critical CSS loading:
+
+```liquid
+{% comment %}layout/theme.liquid{% endcomment %}
+<style>
+  {% render 'critical-css' %}
+</style>
+
+<link rel="preload" href="{{ 'theme.css' | asset_url }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript>
+  <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
+</noscript>
+```
+
+## Caching Strategy
+
+### Browser Caching
+
+Configure caching headers in your `shopify.config.yml`:
+
+```yaml
+development:
+  cache:
+    enable: true
+    headers:
+      # Cache assets for 1 year
+      'Cache-Control': 'public, max-age=31536000, immutable'
+      # Enable compression
+      'Content-Encoding': 'gzip, br'
+```
+
+### Dynamic Content Caching
+
+Implement section-specific caching:
+
+```liquid
+{% comment %}sections/featured-products.liquid{% endcomment %}
+{% capture cache_key %}featured-products-{{ section.id }}-{{ section.settings.collection.updated_at }}{% endcapture %}
+
+{% capture cached_content %}
+  {% include 'cached-section', key: cache_key %}
+{% endcapture %}
+
+{% if cached_content != blank %}
+  {{ cached_content }}
+{% else %}
+  {% capture new_content %}
+    <div class="featured-products" data-section-id="{{ section.id }}">
+      {% paginate section.settings.collection.products by 12 %}
+        <div class="products-grid">
+          {% for product in section.settings.collection.products %}
+            {% render 'product-card', product: product %}
+          {% endfor %}
+        </div>
+      {% endpaginate %}
+    </div>
+  {% endcapture %}
+  
+  {% include 'cache-section', key: cache_key, content: new_content %}
+  {{ new_content }}
+{% endif %}
+```
+
+## Mobile Optimization
+
+### Responsive Design Best Practices
+
+Implement mobile-first design:
+
+```scss
+// styles/theme.scss
+$breakpoints: (
+  'sm': 320px,
+  'md': 750px,
+  'lg': 990px,
+  'xl': 1200px
+);
+
+@mixin respond-to($breakpoint) {
+  $value: map-get($breakpoints, $breakpoint);
+  
+  @if $value {
+    @media screen and (min-width: $value) {
+      @content;
+    }
+  }
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+  
+  @include respond-to('md') {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @include respond-to('lg') {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @include respond-to('xl') {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+```
+
+## Performance Monitoring
+
+### Custom Performance Metrics
+
+Track key performance indicators:
+
+```javascript
+// assets/performance-monitoring.js
+class PerformanceMonitor {
+  constructor() {
+    this.metrics = {};
+  }
+
+  measureTiming(name, startMark, endMark) {
+    performance.measure(name, startMark, endMark);
+    const measure = performance.getEntriesByName(name).pop();
+    this.metrics[name] = measure.duration;
+  }
+
+  trackCoreWebVitals() {
+    new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries()) {
+        this.metrics[entry.name] = entry.value;
+      }
+    }).observe({ entryTypes: ['web-vitals'] });
+  }
+
+  sendMetrics() {
+    fetch('/monitoring/performance', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(this.metrics)
+    });
+  }
+}
+
+// Initialize monitoring
+const monitor = new PerformanceMonitor();
+monitor.trackCoreWebVitals();
+```
+
+## Next Steps
+
+1. [Explore SEO Optimization](/seo/basics/)
+2. [Learn About Theme Architecture](/themes/architecture/)
+3. [Master Asset Management](/performance/asset-management/)
+4. [Implement Analytics](/analytics/setup/)

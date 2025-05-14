@@ -1,0 +1,147 @@
+---
+title: Customizing Themes with Liquid
+description: Master Shopify's Liquid templating language for dynamic content and theme customization
+---
+
+# Customizing Themes with Liquid
+
+## Introduction to Liquid
+
+Liquid is Shopify's templating language that enables dynamic content rendering in your themes. It consists of:
+- Objects: Represent store data
+- Tags: Control flow and logic
+- Filters: Modify output
+
+## Basic Syntax
+
+### Variables and Objects
+
+Access product data:
+```liquid
+{{ product.title }}
+{{ product.price | money_with_currency }}
+{{ product.description }}
+```
+
+Collection iteration:
+```liquid
+{% for product in collection.products %}
+  <div class="product-card">
+    <h2>{{ product.title }}</h2>
+    <img src="{{ product.featured_image | img_url: '300x300' }}" alt="{{ product.title }}">
+    <p class="price">{{ product.price | money }}</p>
+  </div>
+{% endfor %}
+```
+
+### Conditional Logic
+
+Show sale badge when product is on sale:
+```liquid
+{% if product.compare_at_price > product.price %}
+  <div class="sale-badge">
+    Sale
+    {% assign savings = product.compare_at_price | minus: product.price %}
+    Save {{ savings | money }}
+  </div>
+{% endif %}
+```
+
+### Control Flow
+
+Navigation menu example:
+```liquid
+<nav class="main-nav">
+  <ul>
+    {% for link in linklists.main-menu.links %}
+      {% if link.links != blank %}
+        <li class="has-dropdown">
+          <a href="{{ link.url }}">{{ link.title }}</a>
+          <ul class="dropdown">
+            {% for child_link in link.links %}
+              <li><a href="{{ child_link.url }}">{{ child_link.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% else %}
+        <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+```
+
+## Common Filters
+
+### Text Manipulation
+```liquid
+{{ product.title | upcase }}
+{{ product.description | truncate: 120 }}
+{{ "hello world" | capitalize }}
+```
+
+### Number Formatting
+```liquid
+{{ product.price | money }}
+{{ product.price | money_without_trailing_zeros }}
+{{ product.price | money_with_currency }}
+```
+
+### Array Operations
+```liquid
+{% assign sorted_products = collection.products | sort: 'price' %}
+{% assign featured_products = collection.products | where: 'tags', 'featured' %}
+```
+
+## Best Practices
+
+1. **Performance**
+   - Use `.size` instead of `.length`
+   - Avoid nested loops when possible
+   - Cache repeated calculations in variables
+
+2. **Code Organization**
+   - Use snippets for reusable code
+   - Comment complex logic
+   - Follow consistent naming conventions
+
+3. **Error Handling**
+```liquid
+{% if product.available %}
+  <button class="add-to-cart">Add to Cart</button>
+{% else %}
+  <button class="sold-out" disabled>Sold Out</button>
+{% endif %}
+```
+
+4. **Debugging**
+```liquid
+{% comment %}Debug product information{% endcomment %}
+<pre>{{ product | json }}</pre>
+```
+
+## Advanced Techniques
+
+### Custom Filters
+```liquid
+{% assign words = product.description | split: ' ' %}
+{% assign word_count = words | size %}
+```
+
+### Working with Arrays
+```liquid
+{% assign colors = product.variants | map: 'option1' | uniq %}
+<div class="color-swatches">
+  {% for color in colors %}
+    <div class="swatch" data-color="{{ color | handleize }}">
+      {{ color }}
+    </div>
+  {% endfor %}
+</div>
+```
+
+## Related Resources
+
+- [Theme Structure](/docs/shopify/theme-structure/)
+- [Templates Guide](/docs/shopify/templates/)
+- [Sections and Blocks](/docs/shopify/sections-blocks/)

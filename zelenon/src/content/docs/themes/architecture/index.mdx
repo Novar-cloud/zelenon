@@ -1,0 +1,249 @@
+---
+title: Shopify Theme Architecture Guide 2025 | Complete Developer Guide
+description: Master Shopify theme development with our comprehensive guide to theme structure, templates, sections, and blocks. Learn best practices for building scalable and maintainable themes.
+head:
+  - tag: meta
+    attrs:
+      name: keywords
+      content: shopify theme architecture, shopify theme structure, shopify theme development, shopify templates, shopify sections
+  - tag: meta
+    attrs:
+      property: og:title
+      content: Shopify Theme Architecture Guide 2025
+  - tag: meta
+    attrs:
+      property: og:description
+      content: Complete guide to Shopify theme development, structure, and best practices
+  - tag: meta
+    attrs:
+      name: author
+      content: Zelenon Documentation
+---
+
+# Shopify Theme Architecture Guide
+
+## Theme Structure Overview
+
+A Shopify theme is organized into a specific directory structure that follows convention over configuration. Understanding this structure is crucial for efficient theme development.
+
+### Directory Structure
+
+```plaintext
+theme/
+├── assets/
+│   ├── theme.css
+│   ├── theme.js
+│   └── images/
+├── config/
+│   ├── settings_data.json
+│   └── settings_schema.json
+├── layout/
+│   └── theme.liquid
+├── locales/
+│   └── en.default.json
+├── sections/
+│   ├── header.liquid
+│   ├── footer.liquid
+│   └── featured-collection.liquid
+├── snippets/
+│   ├── product-card.liquid
+│   └── collection-grid.liquid
+└── templates/
+    ├── index.json
+    ├── product.liquid
+    └── collection.liquid
+```
+
+## Core Components
+
+### Layout Files
+
+The `theme.liquid` file serves as your theme's master template:
+
+```liquid
+<!DOCTYPE html>
+<html lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{ content_for_header }}
+    {{ 'theme.css' | asset_url | stylesheet_tag }}
+  </head>
+  <body>
+    {% section 'header' %}
+    <main role="main">
+      {{ content_for_layout }}
+    </main>
+    {% section 'footer' %}
+    {{ 'theme.js' | asset_url | script_tag }}
+  </body>
+</html>
+```
+
+### Templates
+
+Templates define the structure for different page types:
+
+#### JSON Templates (Recommended)
+```json
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "settings": {
+        "show_vendor": true,
+        "show_sku": true
+      }
+    },
+    "recommendations": {
+      "type": "product-recommendations"
+    }
+  },
+  "order": ["main", "recommendations"]
+}
+```
+
+#### Liquid Templates (Legacy)
+```liquid
+{% section 'product-template' %}
+{% section 'product-recommendations' %}
+```
+
+### Sections
+
+Sections are modular components that can be customized through the theme editor:
+
+```liquid
+{% schema %}
+{
+  "name": "Featured Collection",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "Featured Collection"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    }
+  ]
+}
+{% endschema %}
+
+<section class="featured-collection">
+  <h2>{{ section.settings.title }}</h2>
+  {% for product in collections[section.settings.collection].products %}
+    {% render 'product-card', product: product %}
+  {% endfor %}
+</section>
+```
+
+### Configuration Files
+
+#### settings_schema.json
+```json
+{
+  "theme_info": {
+    "name": "Your Theme Name",
+    "theme_version": "1.0.0"
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary Color",
+      "default": "#000000"
+    }
+  ]
+}
+```
+
+## Best Practices
+
+### 1. Modular Development
+
+- Break down complex components into reusable snippets
+- Use sections for customizable content blocks
+- Implement blocks for flexible layouts
+
+### 2. Performance Optimization
+
+- Minify CSS and JavaScript files
+- Use responsive images with srcset
+- Implement lazy loading for images
+- Cache expensive computations
+
+### 3. Theme Settings
+
+- Group related settings together
+- Provide clear, descriptive labels
+- Use appropriate input types
+- Include helpful default values
+
+### 4. Version Control
+
+- Use Git for tracking changes
+- Follow semantic versioning
+- Maintain a changelog
+- Document major changes
+
+## Advanced Topics
+
+### Dynamic Sections
+
+Create sections that respond to user interactions:
+
+```liquid
+{% schema %}
+{
+  "name": "Dynamic Products Grid",
+  "settings": [
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "min": 4,
+      "max": 12,
+      "step": 4,
+      "label": "Products per page",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Dynamic Products Grid",
+      "category": "Collection"
+    }
+  ]
+}
+{% endschema %}
+
+{% assign products = collection.products | limit: section.settings.products_per_page %}
+<div class="products-grid" data-products-grid>
+  {% for product in products %}
+    {% render 'product-card', product: product %}
+  {% endfor %}
+</div>
+```
+
+### Asset Pipeline
+
+Optimize asset delivery:
+
+```liquid
+{{ 'theme.css' | asset_url | stylesheet_tag }}
+{{ 'theme.js' | asset_url | script_tag | defer }}
+```
+
+## Next Steps
+
+1. [Learn Liquid Templating](/themes/liquid/)
+2. [Master Sections & Blocks](/themes/sections/)
+3. [Explore Performance Optimization](/performance/speed-optimization/)
+4. [Implement SEO Best Practices](/seo/basics/)
