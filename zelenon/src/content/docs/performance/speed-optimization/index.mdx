@@ -326,9 +326,394 @@ const monitor = new PerformanceMonitor();
 monitor.trackCoreWebVitals();
 ```
 
+## Advanced Performance Techniques
+
+### Dynamic Import Optimization
+
+Implement efficient code splitting:
+
+```javascript
+// modules/features.js
+export class FeatureLoader {
+  constructor() {
+    this.loadedFeatures = new Set();
+    this.init();
+  }
+
+  init() {
+    this.observeFeatures();
+    this.handleIntersection = this.handleIntersection.bind(this);
+  }
+
+  observeFeatures() {
+    const observer = new IntersectionObserver(this.handleIntersection, {
+      rootMargin: '50px',
+      threshold: 0.1
+    });
+
+    document.querySelectorAll('[data-feature]').forEach(element => {
+      observer.observe(element);
+    });
+  }
+
+  async handleIntersection(entries) {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        const feature = entry.target.dataset.feature;
+        
+        if (!this.loadedFeatures.has(feature)) {
+          await this.loadFeature(feature, entry.target);
+          this.loadedFeatures.add(feature);
+        }
+      }
+    }
+  }
+
+  async loadFeature(name, container) {
+    try {
+      const module = await import(`./features/${name}.js`);
+      new module.default(container);
+    } catch (error) {
+      console.error(`Error loading feature ${name}:`, error);
+    }
+  }
+}
+```
+
+### Resource Optimization Pipeline
+
+Create an asset optimization workflow:
+
+```javascript
+// utils/asset-optimizer.js
+export class AssetOptimizer {
+  constructor(options = {}) {
+    this.options = {
+      imageQuality: 85,
+      imageSizes: [375, 750, 1100, 1500, 1780, 2000],
+      formats: ['webp', 'jpeg'],
+      ...options
+    };
+  }
+
+  getImageUrl(image, {width, format = 'webp'} = {}) {
+    return image.replace(/\.(jpg|jpeg|png)$/, `.${format}`);
+  }
+
+  generateSrcset(image) {
+    return this.options.imageSizes
+      .map(width => {
+        const url = this.getImageUrl(image, {width});
+        return `${url} ${width}w`;
+      })
+      .join(', ');
+  }
+
+  lazyLoadImages() {
+    const images = document.querySelectorAll('img[loading="lazy"]');
+    
+    images.forEach(img => {
+      const parent = img.parentElement;
+      const isPicture = parent.tagName === 'PICTURE';
+
+      if (!isPicture) {
+        this.wrapInPicture(img);
+      }
+    });
+  }
+
+  wrapInPicture(img) {
+    const picture = document.createElement('picture');
+    const srcset = this.generateSrcset(img.src);
+    
+    this.options.formats.forEach(format => {
+      if (format !== 'jpeg') {
+        const source = document.createElement('source');
+        source.type = `image/${format}`;
+        source.srcset = srcset;
+        picture.appendChild(source);
+      }
+    });
+
+    img.parentElement.insertBefore(picture, img);
+    picture.appendChild(img);
+  }
+}
+```
+
+### Advanced Caching Strategy
+
+Implement intelligent caching:
+
+```javascript
+// utils/cache-manager.js
+export class CacheManager {
+  constructor() {
+    this.cacheName = 'shopify-store-cache-v1';
+    this.maxAge = 7 * 24 * 60 * 60 * 1000; // 1 week
+    this.init();
+  }
+
+  async init() {
+    if ('serviceWorker' in navigator) {
+      await this.registerServiceWorker();
+      await this.cleanOldCache();
+    }
+  }
+
+  async registerServiceWorker() {
+    try {
+      await navigator.serviceWorker.register('/sw.js');
+    } catch (error) {
+      console.error('Service worker registration failed:', error);
+    }
+  }
+
+  async cleanOldCache() {
+    const cache = await caches.open(this.cacheName);
+    const keys = await cache.keys();
+    const now = Date.now();
+
+    for (const request of keys) {
+      const response = await cache.match(request);
+      const cacheDate = new Date(response.headers.get('date')).getTime();
+
+      if (now - cacheDate > this.maxAge) {
+        await cache.delete(request);
+      }
+    }
+  }
+
+  async cacheResponse(request, response) {
+    const cache = await caches.open(this.cacheName);
+    await cache.put(request, response);
+  }
+
+  createCacheableResponse(data, options = {}) {
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=604800',
+      ...options.headers
+    });
+
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers
+    });
+  }
+}
+```
+
+### Performance Monitoring System
+
+Implement comprehensive monitoring:
+
+```javascript
+// utils/performance-monitor.js
+export class PerformanceMonitor {
+  constructor() {
+    this.metrics = new Map();
+    this.observers = new Map();
+    this.init();
+  }
+
+  init() {
+    this.observeWebVitals();
+    this.observeResources();
+    this.observeUserInteractions();
+  }
+
+  observeWebVitals() {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        this.metrics.set(entry.name, entry.value);
+        this.reportMetric(entry.name, entry.value);
+      }
+    });
+
+    observer.observe({ entryTypes: ['web-vitals'] });
+    this.observers.set('web-vitals', observer);
+  }
+
+  observeResources() {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest') {
+          this.trackApiCall(entry);
+        }
+      }
+    });
+
+    observer.observe({ entryTypes: ['resource'] });
+    this.observers.set('resources', observer);
+  }
+
+  observeUserInteractions() {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        this.trackInteraction(entry);
+      }
+    });
+
+    observer.observe({ entryTypes: ['event', 'first-input'] });
+    this.observers.set('interactions', observer);
+  }
+
+  trackApiCall(entry) {
+    const metrics = {
+      duration: entry.duration,
+      startTime: entry.startTime,
+      transferSize: entry.transferSize,
+      url: entry.name
+    };
+
+    this.reportMetric(`api_call_${entry.name}`, metrics);
+  }
+
+  trackInteraction(entry) {
+    const metrics = {
+      duration: entry.duration,
+      startTime: entry.startTime,
+      type: entry.name,
+      target: entry.target
+    };
+
+    this.reportMetric(`interaction_${entry.name}`, metrics);
+  }
+
+  async reportMetric(name, value) {
+    try {
+      await fetch('/monitoring/metrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name,
+          value,
+          timestamp: Date.now()
+        })
+      });
+    } catch (error) {
+      console.error('Error reporting metric:', error);
+    }
+  }
+
+  getMetricSummary() {
+    return Array.from(this.metrics.entries()).reduce((summary, [name, value]) => {
+      summary[name] = value;
+      return summary;
+    }, {});
+  }
+}
+```
+
+## Integration Patterns
+
+### Performance-Optimized Components
+
+Create high-performance components:
+
+```javascript
+// components/optimized-slider.js
+export class OptimizedSlider {
+  constructor(container) {
+    this.container = container;
+    this.slides = [];
+    this.currentIndex = 0;
+    this.init();
+  }
+
+  init() {
+    this.loadVisibleSlides();
+    this.setupIntersectionObserver();
+    this.bindEvents();
+  }
+
+  loadVisibleSlides() {
+    const visibleSlides = this.container.querySelectorAll('[data-slide]:not([data-loaded])');
+    
+    visibleSlides.forEach(slide => {
+      this.loadSlide(slide);
+    });
+  }
+
+  async loadSlide(slide) {
+    const image = slide.querySelector('img');
+    if (!image) return;
+
+    const src = image.dataset.src;
+    if (!src) return;
+
+    try {
+      await this.preloadImage(src);
+      image.src = src;
+      slide.dataset.loaded = 'true';
+    } catch (error) {
+      console.error('Error loading slide image:', error);
+    }
+  }
+
+  preloadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  setupIntersectionObserver() {
+    const options = {
+      root: this.container,
+      rootMargin: '50%',
+      threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !entry.target.dataset.loaded) {
+          this.loadSlide(entry.target);
+        }
+      });
+    }, options);
+
+    this.container.querySelectorAll('[data-slide]').forEach(slide => {
+      observer.observe(slide);
+    });
+  }
+
+  bindEvents() {
+    this.container.addEventListener('click', event => {
+      const button = event.target.closest('[data-slide-nav]');
+      if (button) {
+        const direction = button.dataset.slideNav;
+        this.navigate(direction);
+      }
+    });
+  }
+
+  navigate(direction) {
+    const slides = Array.from(this.container.querySelectorAll('[data-slide]'));
+    const currentIndex = slides.findIndex(slide => slide.classList.contains('active'));
+    let nextIndex;
+
+    if (direction === 'next') {
+      nextIndex = currentIndex + 1 >= slides.length ? 0 : currentIndex + 1;
+    } else {
+      nextIndex = currentIndex - 1 < 0 ? slides.length - 1 : currentIndex - 1;
+    }
+
+    slides[currentIndex].classList.remove('active');
+    slides[nextIndex].classList.add('active');
+    this.loadVisibleSlides();
+  }
+}
+```
+
 ## Next Steps
 
 1. [Explore SEO Optimization](/seo/basics/)
-2. [Learn About Theme Architecture](/themes/architecture/)
-3. [Master Asset Management](/performance/asset-management/)
-4. [Implement Analytics](/analytics/setup/)
+2. [Learn About Theme Architecture](/shopify/theme-structure/)
+3. [Learn About JavaScript Development](/customization/javascript/)
+4. [Implement Advanced Features](/shopify/sections-blocks/)

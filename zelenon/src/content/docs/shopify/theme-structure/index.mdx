@@ -3,35 +3,25 @@ title: Shopify Theme Architecture
 description: Comprehensive guide to understanding Shopify theme structure, templates, sections, and blocks
 ---
 
-# Shopify Theme Architecture Overview
+# Shopify Theme Architecture Overview 2025
 
 ## Theme Structure Fundamentals
 
-A Shopify theme controls the visual presentation and functionality of your online store through a combination of templates, sections, and blocks. Here's how these components work together:
+A modern Shopify theme controls the visual presentation and functionality of your online store through a combination of templates, sections, and blocks. With the 2025 updates, there's increased emphasis on modularity and customization.
 
 ### Directory Structure
 
 ```plaintext
 theme/
-├── layout/
-│   └── theme.liquid        # Global layout file
-├── templates/
-│   ├── index.json         # Homepage template
-│   ├── product.liquid     # Product page template
-│   └── collection.liquid  # Collection page template
-├── sections/
-│   ├── header.liquid      # Site header
-│   └── footer.liquid      # Site footer
-├── snippets/
-│   └── product-card.liquid # Reusable product card
 ├── assets/
-│   ├── theme.css          # Theme styles
-│   └── theme.js           # Theme scripts
 ├── config/
-│   ├── settings_schema.json  # Theme settings
-│   └── settings_data.json    # Theme configuration
-└── locales/
-    └── en.default.json    # Translation strings
+├── layout/
+├── locales/
+├── sections/
+├── snippets/
+└── templates/
+    ├── customers/
+    └── json/
 ```
 
 ### Key Components
@@ -41,97 +31,326 @@ The `theme.liquid` file serves as the master template for your store, containing
 - HTML document structure
 - Header and footer includes
 - Global assets (CSS, JavaScript)
+- App embed blocks
 - Shopify-specific tags
 
 #### Templates
-Templates define the structure for different page types:
-- `index.json`: Homepage layout
-- `product.liquid`: Product page structure
-- `collection.liquid`: Collection page layout
-- `page.liquid`: Standard page template
+Modern Shopify themes use JSON templates for flexibility:
+- `templates/index.json`: Homepage layout
+- `templates/product.json`: Product page structure
+- `templates/collection.json`: Collection page layout
+- `templates/page.json`: Standard page template
 
-#### Sections
-Sections are modular, reusable components that can be:
-- Added to templates
-- Reordered through the theme editor
-- Customized with settings
+#### Sections (2025 Updates)
+Sections are now more powerful with:
+- Dynamic content loading
+- Enhanced performance optimizations
+- Advanced customization options
+- Nested sections support
+- Real-time preview capabilities
 
-Example section structure:
+Example modern section:
 ```liquid
 {% schema %}
 {
-  "name": "Featured Products",
+  "name": "Dynamic Products Grid",
+  "tag": "section",
+  "class": "products-grid",
+  "limit": 1,
   "settings": [
     {
-      "type": "text",
-      "id": "title",
-      "label": "Section Title"
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_per_row",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 3,
+      "label": "Products per row",
+      "info": "On mobile, this will be reduced to fit the screen"
+    },
+    {
+      "type": "header",
+      "content": "Performance Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_lazy_loading",
+      "label": "Enable lazy loading",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_quick_view",
+      "label": "Enable quick view",
+      "default": true
     }
-  ]
-}
-{% endschema %}
-
-<div class="featured-products">
-  <h2>{{ section.settings.title }}</h2>
-  {% for product in section.products %}
-    {% render 'product-card', product: product %}
-  {% endfor %}
-</div>
-```
-
-#### Blocks
-Blocks are customizable components within sections that allow for:
-- Content flexibility
-- Dynamic layouts
-- Enhanced customization options
-
-Example block structure:
-```liquid
-{% schema %}
-{
-  "name": "Featured Products",
+  ],
+  "presets": [
+    {
+      "name": "Dynamic Products Grid",
+      "category": "Products"
+    }
+  ],
   "blocks": [
     {
       "type": "product",
-      "name": "Product",
-      "limit": 4,
+      "name": "Product Card",
+      "limit": 12,
       "settings": [
         {
           "type": "product",
           "id": "product",
           "label": "Product"
+        },
+        {
+          "type": "select",
+          "id": "card_style",
+          "label": "Card Style",
+          "options": [
+            {
+              "value": "standard",
+              "label": "Standard"
+            },
+            {
+              "value": "minimal",
+              "label": "Minimal"
+            },
+            {
+              "value": "featured",
+              "label": "Featured"
+            }
+          ],
+          "default": "standard"
+        }
+      ]
+    },
+    {
+      "type": "promo",
+      "name": "Promotional Card",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "promo_image",
+          "label": "Promotional Image"
+        },
+        {
+          "type": "richtext",
+          "id": "promo_text",
+          "label": "Promotional Text"
         }
       ]
     }
   ]
 }
 {% endschema %}
+
+<div class="products-grid" data-products-grid>
+  {% assign grid_classes = 'grid grid--' | append: section.settings.products_per_row | append: '-col-desktop grid--2-col-tablet' %}
+  
+  <div class="{{ grid_classes }}">
+    {% for block in section.blocks %}
+      {% case block.type %}
+        {% when 'product' %}
+          {% render 'product-card',
+            product: block.settings.product,
+            card_style: block.settings.card_style,
+            lazy_load: section.settings.enable_lazy_loading,
+            quick_view: section.settings.enable_quick_view
+          %}
+        {% when 'promo' %}
+          {% render 'promo-card',
+            image: block.settings.promo_image,
+            text: block.settings.promo_text
+          %}
+      {% endcase %}
+    {% endfor %}
+  </div>
+</div>
+
+{% if section.settings.enable_quick_view %}
+  {% render 'quick-view-modal' %}
+{% endif %}
 ```
 
-## Best Practices
+#### Blocks (2025 Features)
+Modern blocks now support:
+1. **Dynamic Loading**
+   - Asynchronous content loading
+   - Performance optimizations
+   - Lazy rendering support
 
-1. **Modular Design**
-   - Break down complex layouts into reusable sections
-   - Use snippets for repeatable components
-   - Implement blocks for flexible content areas
+2. **Advanced Customization**
+   - Nested blocks
+   - Conditional rendering
+   - Dynamic content slots
+   - Custom styling API
 
-2. **Performance**
-   - Minimize JavaScript and CSS files
-   - Use responsive images
-   - Implement lazy loading where appropriate
+3. **Enhanced Interactivity**
+   - Client-side updates
+   - Real-time previews
+   - State management
+   - Event handling
 
-3. **Customization**
-   - Provide meaningful section and block settings
-   - Use clear labels and helpful descriptions
-   - Group related settings together
+4. **Performance Features**
+   - Automatic code splitting
+   - Resource prioritization
+   - Selective hydration
+   - Predictive loading
 
-4. **Version Control**
-   - Use Git for tracking changes
-   - Maintain a clear commit history
-   - Document major changes and updates
+Example block implementation:
+```liquid
+{% schema %}
+{
+  "name": "Product Features",
+  "tag": "section",
+  "class": "section-features",
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Feature",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "header",
+          "content": "Content"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon",
+          "label": "Icon"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Feature Title"
+        },
+        {
+          "type": "richtext",
+          "id": "description",
+          "label": "Description"
+        },
+        {
+          "type": "header",
+          "content": "Styling"
+        },
+        {
+          "type": "select",
+          "id": "animation",
+          "label": "Animation",
+          "options": [
+            {
+              "value": "fade",
+              "label": "Fade In"
+            },
+            {
+              "value": "slide",
+              "label": "Slide Up"
+            },
+            {
+              "value": "zoom",
+              "label": "Zoom In"
+            }
+          ],
+          "default": "fade"
+        },
+        {
+          "type": "color",
+          "id": "background",
+          "label": "Background Color",
+          "default": "#ffffff"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Features",
+      "blocks": [
+        {
+          "type": "feature"
+        },
+        {
+          "type": "feature"
+        },
+        {
+          "type": "feature"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<div class="features-grid">
+  {% for block in section.blocks %}
+    {% if block.type == 'feature' %}
+      <div class="feature"
+           data-animation="{{ block.settings.animation }}"
+           style="background-color: {{ block.settings.background }}"
+           {{ block.shopify_attributes }}>
+        {% if block.settings.icon %}
+          <div class="feature__icon">
+            <img src="{{ block.settings.icon | img_url: '100x' }}"
+                 alt="{{ block.settings.title }}"
+                 loading="lazy"
+                 width="100"
+                 height="100">
+          </div>
+        {% endif %}
+        <h3 class="feature__title">{{ block.settings.title }}</h3>
+        <div class="feature__description">{{ block.settings.description }}</div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+
+{% if section.blocks.size == 0 %}
+  <div class="placeholder-message">
+    Add features to showcase product highlights
+  </div>
+{% endif %}
+```
+
+## Best Practices for 2025
+
+### 1. Performance-First Development
+- Implement lazy loading for images and blocks
+- Use dynamic imports for JavaScript
+- Optimize critical rendering path
+- Leverage browser caching
+- Implement predictive loading
+
+### 2. Enhanced Customization
+- Create flexible block configurations
+- Use nested blocks for complex layouts
+- Implement dynamic content slots
+- Provide meaningful style options
+- Enable conditional rendering
+
+### 3. Mobile Optimization
+- Design for mobile-first
+- Optimize touch interactions
+- Reduce content on mobile
+- Implement responsive images
+- Test on multiple devices
+
+### 4. Modern Development Tools
+- Use version control
+- Implement CI/CD pipelines
+- Automate testing
+- Monitor performance
+- Document changes
 
 ## Next Steps
 
-- Learn more about [Templates and Page Types](/docs/shopify/templates/)
-- Explore [Sections and Blocks](/docs/shopify/sections-blocks/)
-- Master [Liquid Templating](/docs/shopify/liquid/)
+1. [Explore JSON Templates](/shopify/templates/)
+2. [Master Dynamic Sections](/shopify/sections-blocks/)
+3. [Learn Metafields](/shopify/metafields/)
+4. [Implement Performance Optimization](/performance/speed-optimization/)
